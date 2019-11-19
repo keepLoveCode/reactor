@@ -6,7 +6,9 @@ import org.reactivestreams.Subscriber;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author grubby
@@ -16,7 +18,7 @@ public class FluxTest {
 
     @Test
     public void just() {
-        Flux.just("1","2",3).subscribe(System.out::println);
+        Flux.just("1", "2", 3).subscribe(System.out::println);
     }
 
 
@@ -33,7 +35,7 @@ public class FluxTest {
 
     @Test
     public void fromArray() {
-        Flux.fromArray(new String[]{"1","2"}).subscribe(e-> System.out.println("a :" + e));
+        Flux.fromArray(new String[]{"1", "2"}).subscribe(e -> System.out.println("a :" + e));
     }
 
     @Test
@@ -43,6 +45,7 @@ public class FluxTest {
 
     /**
      * 已一定周期产生一个数字序列
+     *
      * @throws InterruptedException
      */
     @Test
@@ -64,7 +67,7 @@ public class FluxTest {
      */
     @Test
     public void never() {
-        Flux.never().subscribe(e->System.out.println("a" + e));
+        Flux.never().subscribe(e -> System.out.println("a" + e));
     }
 
     /**
@@ -77,9 +80,9 @@ public class FluxTest {
 
     /**
      * generate只能发布一个item
-     *
+     * <p>
      * 如果没complete将一直发出。需要显示调用结束信号，不然会一直发
-     *
+     * <p>
      * todo List来看下
      */
     @Test
@@ -113,4 +116,76 @@ public class FluxTest {
         }).subscribe(e-> System.out.println("a " +e));
     }
 
+    /**
+     * buffer是 必须要等缓冲区满了之后才会发出数据
+     */
+    @Test
+    public void buffer() throws InterruptedException {
+        Flux.create(i -> {
+            i.next("1");
+            i.next("2");
+            i.next("3");
+            try {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (Exception e) {
+
+            }
+            i.next("4");
+            i.complete();
+        }).buffer(3).subscribe(System.out::println);
+        Thread.currentThread().join();
+
+    }
+
+    /**
+     * 至收到元素开始计算超时
+     * @throws InterruptedException
+     */
+    @Test
+    public void bufferTimeout() throws InterruptedException {
+        Flux.interval(Duration.of(3, ChronoUnit.SECONDS))
+                .bufferTimeout(3, Duration.of(2, ChronoUnit.SECONDS)).subscribe(System.out::println);
+        Thread.currentThread().join();
+    }
+
+    /**
+     * window和buffer类似，只不过返回值变为了flux
+     */
+    @Test
+    public void window() {
+        Flux.range(0,10).window(3).subscribe(i->i.subscribe(System.out::println));
+    }
+
+    /**
+     * 和8的filer一样，
+     * todo 搞清楚是同步还是异步的
+     */
+    @Test
+    public void filer() {
+
+    }
+
+    /**
+     * zip遵循木桶定理
+     */
+    @Test
+    public void zipWith() {
+        Flux.just("A","B").zipWith(Flux.just(1,2,3)).subscribe(System.out::println);
+    }
+
+    /**
+     * 取元素
+     */
+    @Test
+    public void take() {
+
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void reduce() {
+        Flux.range(1,11).reduce((x,y)->x+y).subscribe(System.out::println);
+    }
 }
